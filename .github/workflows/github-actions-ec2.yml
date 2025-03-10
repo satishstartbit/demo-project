@@ -8,12 +8,27 @@ on:
 
 jobs:
   deploy:
-    name: Deploy to EC2 on master branch push
+    name: Deploy to EC2 on main branch push
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout the files
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: Debug SSH key
+        run: echo "${{ secrets.EC2_SSH_KEY }}" > key.pem && chmod 400 key.pem
+
+      - name: Debug Remote Host
+        run: echo "Remote Host: ${{ secrets.HOST_DNS }}"
+
+      - name: Debug Remote User
+        run: echo "Remote User: ${{ secrets.USERNAME }}"
+
+      - name: Debug Target Directory
+        run: echo "Target Directory: ${{ secrets.TARGET_DIR }}"
+
+      - name: Create .ssh directory
+        run: mkdir -p ~/.ssh && chmod 700 ~/.ssh
 
       - name: Deploy to Server 1
         uses: easingthemes/ssh-deploy@main
@@ -34,5 +49,11 @@ jobs:
             sudo apt-get install -y apache2
             sudo systemctl start apache2
             sudo systemctl enable apache2
-            cd home
+            cd ~
             sudo mv * /var/www/html
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Deployment failed!"
+          # Add a notification command here (e.g., curl to a webhook)
